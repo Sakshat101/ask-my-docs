@@ -1,0 +1,362 @@
+{
+  "metadata": {
+    "source_document": "NLP_Answers_2025-26.docx",
+    "total_questions": 20,
+    "description": "Golden evaluation dataset for RAG pipeline testing. Contains diverse question types: factual recall, multi-hop reasoning, concept comparison, applied/procedural, edge-case disambiguation, and Indian language NLP.",
+    "chunk_scheme": "section-based — each chunk_id maps to a Unit + Question number in the source document",
+    "evaluation_metrics": [
+      "faithfulness",
+      "answer_relevance",
+      "context_precision",
+      "context_recall"
+    ]
+  },
+  "golden_questions": [
+    {
+      "id": "GQ-001",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "question": "What type of knowledge is required to resolve the pronoun 'it' in the sentence 'Ravi placed the glass on the shelf and broke it'?",
+      "ground_truth_answer": "World Knowledge (also called Common-Sense or Pragmatic Knowledge) is required. Syntax alone cannot resolve the ambiguity because both 'glass' and 'shelf' are grammatically valid antecedents. Real-world knowledge tells us that glasses break but shelves do not, so 'it' refers to 'the glass'.",
+      "source_chunk_id": "UNIT1-Q1",
+      "source_reference": "Unit 1, Q1 — Reference Resolution and Types of Knowledge",
+      "expected_keywords": [
+        "world knowledge",
+        "pragmatic",
+        "glass",
+        "shelf",
+        "breaks"
+      ]
+    },
+    {
+      "id": "GQ-002",
+      "type": "applied_procedural",
+      "difficulty": "medium",
+      "question": "Perform POS tagging on the sentence 'AI is rapidly growing!' and list the tag for each token.",
+      "ground_truth_answer": "AI → NNP (Proper Noun), is → VBZ (Verb, 3rd person singular), rapidly → RB (Adverb), growing → VBG (Verb, gerund/present participle), ! → punctuation.",
+      "source_chunk_id": "UNIT1-Q2",
+      "source_reference": "Unit 1, Q2 — Sentence Segmentation, Tokenization, POS Tagging, Lemmatization",
+      "expected_keywords": [
+        "NNP",
+        "VBZ",
+        "RB",
+        "VBG",
+        "AI",
+        "rapidly"
+      ]
+    },
+    {
+      "id": "GQ-003",
+      "type": "concept_comparison",
+      "difficulty": "medium",
+      "question": "What is the key difference between lemmatization and stemming?",
+      "ground_truth_answer": "Lemmatization uses a dictionary lookup to return the canonical base form of a word (e.g., 'growing' → 'grow'), preserving a valid dictionary word. Stemming simply chops off suffixes using heuristic rules without guaranteeing a real word (e.g., producing 'growi' instead of 'grow').",
+      "source_chunk_id": "UNIT1-Q2",
+      "source_reference": "Unit 1, Q2 — Exam Tip on Lemmatization vs. Stemming",
+      "expected_keywords": [
+        "dictionary lookup",
+        "suffix",
+        "stemming",
+        "lemmatization",
+        "canonical"
+      ]
+    },
+    {
+      "id": "GQ-004",
+      "type": "ambiguity_analysis",
+      "difficulty": "medium",
+      "question": "Identify and explain the two readings of the sentence 'Flying planes can be dangerous.'",
+      "ground_truth_answer": "This sentence exhibits syntactic (structural) ambiguity. Reading 1: 'Flying planes' is a noun phrase (NP) meaning 'Planes that fly are dangerous.' Reading 2: 'Flying' is a gerund (VBG) modifying 'planes', meaning 'The act of flying planes is dangerous.' Both readings arise from different parse trees over the same word string.",
+      "source_chunk_id": "UNIT1-Q4",
+      "source_reference": "Unit 1, Q4 — Types of Ambiguity",
+      "expected_keywords": [
+        "syntactic ambiguity",
+        "gerund",
+        "noun phrase",
+        "parse tree",
+        "two readings"
+      ]
+    },
+    {
+      "id": "GQ-005",
+      "type": "multi_hop_reasoning",
+      "difficulty": "hard",
+      "question": "What are the four main types of ambiguity in NLP, and which two are most frequently examined?",
+      "ground_truth_answer": "The four types are: (1) Lexical Ambiguity — a single word has multiple meanings (e.g., 'bank'); (2) Syntactic Ambiguity — the sentence allows multiple parse trees (e.g., 'Flying planes can be dangerous'); (3) Semantic Ambiguity — same structure, different logical meanings (e.g., 'Every student read a book'); (4) Pragmatic Ambiguity — interpretation depends on context or intent (e.g., 'Can you open the door?'). Lexical and Syntactic ambiguity are most frequently examined.",
+      "source_chunk_id": "UNIT1-Q6",
+      "source_reference": "Unit 1, Q6 — Ambiguity in NLP",
+      "expected_keywords": [
+        "lexical",
+        "syntactic",
+        "semantic",
+        "pragmatic",
+        "bank",
+        "parse tree"
+      ]
+    },
+    {
+      "id": "GQ-006",
+      "type": "applied_procedural",
+      "difficulty": "hard",
+      "question": "Describe the FST (Finite State Transducer) state transitions for parsing the word 'playing' from the stem 'play'.",
+      "ground_truth_answer": "Starting from q0 (start state), the FST transitions through states reading each letter of the stem: q0 →p→ q1 →l→ q2 →a→ q3 →y→ q4 (stem 'play' accepted). From q4, the suffix '-ing' is processed: q4 →i→ q7 →n→ q8 →g→ q9 [accept], producing the output 'play+V+PROG'. This models the morphological analysis of the progressive form.",
+      "source_chunk_id": "UNIT2-Q1",
+      "source_reference": "Unit 2, Q1 — FST-Based Morphological Parser for 'played' and 'playing'",
+      "expected_keywords": [
+        "FST",
+        "q0",
+        "q4",
+        "PROG",
+        "play+V+PROG",
+        "state",
+        "suffix"
+      ]
+    },
+    {
+      "id": "GQ-007",
+      "type": "concept_comparison",
+      "difficulty": "medium",
+      "question": "What is the difference between inflectional and derivational morphology? Classify 'singer' and 'runs' accordingly.",
+      "ground_truth_answer": "'Runs' (run + -s) is inflectional morphology: it changes the word's form for grammatical agreement (3rd person singular) but keeps the same part of speech (verb). 'Singer' (sing + -er) is derivational morphology: it changes the POS from verb to noun and creates a new word with a different meaning. The key rule is — inflectional morphology preserves POS; derivational morphology changes POS or creates a new lexical item.",
+      "source_chunk_id": "UNIT2-Q9",
+      "source_reference": "Unit 2, Q9 — Inflectional vs. Derivational Morphology",
+      "expected_keywords": [
+        "inflectional",
+        "derivational",
+        "POS",
+        "singer",
+        "runs",
+        "same part of speech"
+      ]
+    },
+    {
+      "id": "GQ-008",
+      "type": "applied_procedural",
+      "difficulty": "medium",
+      "question": "Perform morphological analysis of the English word 'unbelievably', identifying each morpheme and its grammatical role.",
+      "ground_truth_answer": "'unbelievably' is decomposed as: un- (prefix, negation) + believe (root verb) + -able (derivational suffix, converts verb to adjective) + -ly (derivational suffix, converts adjective to adverb). Full analysis: un + believe + able + ly → ADV (negated manner adverb).",
+      "source_chunk_id": "UNIT2-Q3",
+      "source_reference": "Unit 2, Q3 & Q6 — Morphological Analysis of 'unbelievably'",
+      "expected_keywords": [
+        "un-",
+        "believe",
+        "-able",
+        "-ly",
+        "prefix",
+        "derivational",
+        "adverb"
+      ]
+    },
+    {
+      "id": "GQ-009",
+      "type": "comparison_tabular",
+      "difficulty": "hard",
+      "question": "Compare the CYK and Earley parsing algorithms in terms of their parsing strategy, grammar requirements, time complexity, and key disadvantage.",
+      "ground_truth_answer": "CYK (Cocke-Younger-Kasami) is a bottom-up chart parser that guarantees finding all parses with O(n³) complexity, but requires the grammar to be in Chomsky Normal Form (CNF) and is memory intensive. Earley parser is a top-down parser with bottom-up prediction that handles all CFGs including ambiguous and left-recursive grammars, but is slower than CYK for unambiguous grammars and has O(n³) worst-case complexity. Key difference: CYK needs CNF; Earley does not.",
+      "source_chunk_id": "UNIT3-Q3",
+      "source_reference": "Unit 3, Q3 & Q4 — Major Parsing Algorithms",
+      "expected_keywords": [
+        "CYK",
+        "Earley",
+        "CNF",
+        "Chomsky Normal Form",
+        "O(n³)",
+        "bottom-up",
+        "top-down"
+      ]
+    },
+    {
+      "id": "GQ-010",
+      "type": "multi_hop_reasoning",
+      "difficulty": "hard",
+      "question": "Explain the two scope interpretations of 'All the students read a book' using first-order logic notation.",
+      "ground_truth_answer": "Reading 1 (wide scope of 'all' — same book): ∀x [student(x) → read(x, b)], where b is a specific book — all students read the same book. Reading 2 (wide scope of 'a' — different books): ∀x [student(x) → ∃y [book(y) ∧ read(x, y)]] — each student read a potentially different book. The ambiguity arises from quantifier scope — whether the universal (∀) or existential (∃) quantifier takes wide scope.",
+      "source_chunk_id": "UNIT3-Q8",
+      "source_reference": "Unit 3, Q8 — Scope Ambiguity and Quantifiers",
+      "expected_keywords": [
+        "∀",
+        "∃",
+        "scope",
+        "quantifier",
+        "same book",
+        "different books",
+        "FOL"
+      ]
+    },
+    {
+      "id": "GQ-011",
+      "type": "concept_comparison",
+      "difficulty": "medium",
+      "question": "What is the difference between homonymy and polysemy? Give one example of each.",
+      "ground_truth_answer": "Homonymy: Two historically unrelated words that share the same spelling or sound. Example: 'bank' (financial institution) vs. 'bank' (river bank) — these have no etymological connection. Polysemy: One word with multiple related meanings that share a common origin. Example: 'head' → head of a person, head of a company, head of a nail — all connected to the concept of 'top' or 'leader'. The exam distinction: homonymy = unrelated origins; polysemy = same origin with extended meanings.",
+      "source_chunk_id": "UNIT4-Q1",
+      "source_reference": "Unit 4, Q1 & Q6 — Homonymy, Polysemy, Synonymy, Hyponymy",
+      "expected_keywords": [
+        "homonymy",
+        "polysemy",
+        "bank",
+        "head",
+        "unrelated",
+        "same origin"
+      ]
+    },
+    {
+      "id": "GQ-012",
+      "type": "applied_procedural",
+      "difficulty": "hard",
+      "question": "Walk through the Lesk Algorithm step-by-step to disambiguate 'bank' in the sentence 'I deposited money in the bank.'",
+      "ground_truth_answer": "Step 1: Identify the target word — 'bank'. Step 2: Retrieve all WordNet senses with glosses — Sense 1: 'a financial institution'; Sense 2: 'sloping land beside a river'. Step 3: Count overlap between context words {deposited, money} and each gloss — Sense 1 overlap: {money} = score 1; Sense 2 overlap: {} = score 0. Step 4: Select Sense 1 (financial bank) as it has the highest overlap score. This is the Lesk Algorithm — a dictionary-based WSD technique.",
+      "source_chunk_id": "UNIT4-Q2",
+      "source_reference": "Unit 4, Q2 & Q8 — Lesk Algorithm and Dictionary-Based WSD",
+      "expected_keywords": [
+        "Lesk",
+        "gloss",
+        "overlap",
+        "WordNet",
+        "context words",
+        "sense",
+        "deposited"
+      ]
+    },
+    {
+      "id": "GQ-013",
+      "type": "indian_language_nlp",
+      "difficulty": "hard",
+      "question": "What are the three main challenges faced by Indian Language WordNets compared to the English WordNet?",
+      "ground_truth_answer": "Three key challenges are: (1) Lack of annotated training data — far fewer synsets than English WordNet's 117,000+; (2) Complex morphology — agglutinative languages like Tamil and Kannada make lemmatization and synset linking harder; (3) Code-mixing — Hinglish (Hindi-English mixed) text is not handled well by monolingual WordNets. Additionally, the resource gap is significant: Indian WordNets are built using an expansion approach from English, which introduces translation errors.",
+      "source_chunk_id": "UNIT4-Q3",
+      "source_reference": "Unit 4, Q3 & Q5 — Indian Language WordNets",
+      "expected_keywords": [
+        "annotated data",
+        "morphology",
+        "code-mixing",
+        "synsets",
+        "Tamil",
+        "agglutinative",
+        "IIT Bombay"
+      ]
+    },
+    {
+      "id": "GQ-014",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "question": "List the four semantic roles defined in NLP with one example sentence for each.",
+      "ground_truth_answer": "AGENT: The entity performing the action — 'John kicked the ball' (John = Agent). PATIENT: The entity affected by the action — 'The ball was kicked' (ball = Patient). SOURCE: Where the action originates — 'She flew from Mumbai' (Mumbai = Source). LOCATION: Where the action takes place — 'They met at the park' (park = Location). A fifth role, GOAL (destination), is also defined: 'He drove to Delhi' (Delhi = Goal).",
+      "source_chunk_id": "UNIT4-Q9",
+      "source_reference": "Unit 4, Q9 — Semantic Roles in NLP",
+      "expected_keywords": [
+        "agent",
+        "patient",
+        "source",
+        "location",
+        "goal",
+        "SRL",
+        "thematic roles"
+      ]
+    },
+    {
+      "id": "GQ-015",
+      "type": "applied_procedural",
+      "difficulty": "medium",
+      "question": "Build the coreference chain for: 'John went to the park. He sat on a bench and read a book.' Justify the resolution.",
+      "ground_truth_answer": "Coreference Chain 1: {John, He} — both refer to the same male individual. Justification: 'He' agrees in gender (masculine) and number (singular) with 'John'. John is the most salient entity as the subject of the first sentence, making it the preferred antecedent under discourse salience. Other noun phrases — 'the park', 'a bench', 'a book' — each appear only once and form singleton chains.",
+      "source_chunk_id": "UNIT5-Q2",
+      "source_reference": "Unit 5, Q2 & Q4 — Coreference Chain Building",
+      "expected_keywords": [
+        "coreference chain",
+        "John",
+        "He",
+        "salience",
+        "gender agreement",
+        "antecedent"
+      ]
+    },
+    {
+      "id": "GQ-016",
+      "type": "edge_case_disambiguation",
+      "difficulty": "hard",
+      "question": "In 'When Riya called her friend, she was excited' — who does 'she' refer to, and what constraints resolve it?",
+      "ground_truth_answer": "'She' most likely refers to Riya, resolved by two constraints: (1) Syntactic constraint — 'Riya' is the subject of the main clause and is the preferred antecedent for a subject-position pronoun; (2) Pragmatic/semantic reasoning — 'she was excited' is naturally attributed to the caller (Riya) rather than the callee, since initiating a call is a more active, excitement-inducing action. The resolution is Riya → she.",
+      "source_chunk_id": "UNIT5-Q8",
+      "source_reference": "Unit 5, Q8 — Pronoun Resolution: 'she' in Riya example",
+      "expected_keywords": [
+        "Riya",
+        "syntactic constraint",
+        "subject",
+        "pragmatic",
+        "caller",
+        "antecedent"
+      ]
+    },
+    {
+      "id": "GQ-017",
+      "type": "system_design",
+      "difficulty": "hard",
+      "question": "What are the six components of a typical rule-based expert system? Briefly describe the role of the Inference Engine.",
+      "ground_truth_answer": "The six components are: (1) Knowledge Base — stores IF-THEN rules and domain facts; (2) Inference Engine — applies rules to current facts to derive conclusions using forward or backward chaining; (3) Working Memory — holds current facts and intermediate results during reasoning; (4) User Interface — handles interaction with end users; (5) Knowledge Acquisition Module — used by domain experts to add or update rules; (6) Explanation Module — explains how a conclusion was reached. The Inference Engine is the reasoning core: it matches incoming facts against rules and fires those whose conditions are satisfied.",
+      "source_chunk_id": "UNIT6-Q1",
+      "source_reference": "Unit 6, Q1 — Components of an Expert System",
+      "expected_keywords": [
+        "knowledge base",
+        "inference engine",
+        "working memory",
+        "forward chaining",
+        "backward chaining",
+        "explanation module"
+      ]
+    },
+    {
+      "id": "GQ-018",
+      "type": "concept_comparison",
+      "difficulty": "medium",
+      "question": "Compare rule-based and ML-based expert systems across four dimensions: transparency, flexibility, scalability, and data requirements.",
+      "ground_truth_answer": "Transparency: Rule-based systems are fully explainable (IF-THEN rules are human-readable); ML systems (especially deep learning) are black boxes. Flexibility: Rule-based systems are rigid and require manual rule updates; ML systems learn automatically from data. Scalability: Rule-based systems become unmaintainable with thousands of rules; ML systems scale with more data. Data Requirements: Rule-based systems need no training data but require expert knowledge to write rules; ML systems require large labeled datasets but no manual rule engineering.",
+      "source_chunk_id": "UNIT6-Q3",
+      "source_reference": "Unit 6, Q3 — Rule-Based vs. ML-Based Systems",
+      "expected_keywords": [
+        "transparency",
+        "black box",
+        "scalability",
+        "labeled data",
+        "expert knowledge",
+        "flexible"
+      ]
+    },
+    {
+      "id": "GQ-019",
+      "type": "indian_language_nlp",
+      "difficulty": "hard",
+      "question": "What preprocessing steps are required before training a sentiment classifier on a code-mixed Hindi-English (Hinglish) corpus?",
+      "ground_truth_answer": "The nine steps are: (1) Data Collection — gather code-mixed social media text; (2) Language Identification — tag each word as Hindi (HI) or English (EN); (3) Transliteration Normalization — convert Romanized Hindi to Devanagari; (4) Tokenization — handle mixed-language token boundaries; (5) Stop Word Removal — for both languages; (6) Normalization — lowercase, remove emojis or retain sentiment-bearing emoticons; (7) POS Tagging — using a multilingual tagger like mBERT; (8) Sentiment Annotation — manual or semi-automatic labeling; (9) Feature Extraction — using TF-IDF or multilingual embeddings like LaBSE or XLM-RoBERTa.",
+      "source_chunk_id": "UNIT6-Q7",
+      "source_reference": "Unit 6, Q7 — Preprocessing for Code-Mixed Sentiment Classification",
+      "expected_keywords": [
+        "language identification",
+        "transliteration",
+        "Devanagari",
+        "mBERT",
+        "LaBSE",
+        "code-mixing",
+        "stop words"
+      ]
+    },
+    {
+      "id": "GQ-020",
+      "type": "system_design",
+      "difficulty": "hard",
+      "question": "What are the three main approaches to Cross-Lingual Information Retrieval (CLIR), and which modern model enables the bilingual embedding approach?",
+      "ground_truth_answer": "The three CLIR approaches are: (1) Query Translation (QT) — translate the user's query into the target document language, then retrieve using standard IR; (2) Document Translation (DT) — translate all documents into the query language and retrieve directly; (3) Cross-lingual embeddings / Interlingua — map both query and documents into a shared multilingual semantic space and retrieve by vector similarity. The bilingual embedding approach is enabled by models such as mBERT (multilingual BERT) and LaBSE (Language-agnostic BERT Sentence Embedding).",
+      "source_chunk_id": "UNIT6-Q9",
+      "source_reference": "Unit 6, Q9 — CLIR System Components and Approaches",
+      "expected_keywords": [
+        "query translation",
+        "document translation",
+        "cross-lingual embeddings",
+        "mBERT",
+        "LaBSE",
+        "CLIR",
+        "interlingua"
+      ]
+    }
+  ]
+}

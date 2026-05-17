@@ -1,0 +1,16 @@
+langchain
+langchain-community
+langchain-openai
+faiss-cpu
+rank-bm25
+sentence-transformers
+fastapi
+uvicorn
+qdrant-client
+ragas
+pytest
+pytest-timeout
+ruff
+mypy
+python-dotenv
+pydantic-settings
