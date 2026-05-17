@@ -1,0 +1,290 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# .github/workflows/ci.yml
+# CI Pipeline — Ask My Docs RAG System
+#
+# Triggers : push / PR → main
+# Jobs     : lint → unit-tests → integration-tests → eval-gate
+# Secrets  : Set these in GitHub → Settings → Secrets → Actions:
+#
+#   OPENAI_API_KEY          OpenAI embedding / generation calls
+#   ANTHROPIC_API_KEY       Claude LLM calls
+#   COHERE_API_KEY          Cohere Rerank API (optional)
+#   QDRANT_API_KEY          Qdrant Cloud (skipped in local-Docker mode)
+#   QDRANT_URL              Qdrant Cloud endpoint
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: CI — RAG Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+  # Allow manual runs from the GitHub Actions UI
+  workflow_dispatch:
+
+# Cancel in-progress runs on the same branch to save runner minutes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ── Global defaults ────────────────────────────────────────────────────────────
+env:
+  PYTHON_VERSION: "3.11"
+  # Non-secret runtime config — safe to store here
+  LOG_LEVEL: "WARNING"
+  VECTOR_BACKEND: "faiss"        # use FAISS (no external DB) in CI
+  BM25_K: "10"
+  VECTOR_K: "10"
+  RERANKER_TOP_K: "5"
+  # Pytest settings
+  PYTEST_TIMEOUT: "120"          # seconds per test
+
+jobs:
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 1 — Code quality: linting + type-checking
+  # ════════════════════════════════════════════════════════════════════════════
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip                          # cache ~/.cache/pip between runs
+
+      - name: Install lint dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy
+
+      - name: Run Ruff (linter + formatter check)
+        run: ruff check . --output-format=github
+
+      - name: Run Mypy (static type checking)
+        run: mypy app/ --ignore-missing-imports --pretty
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 2 — Unit tests (no external services, no real API keys needed)
+  # ════════════════════════════════════════════════════════════════════════════
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: lint                              # only run if lint passes
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests
+        # Unit tests must NOT call real APIs — use mocks/fixtures only.
+        # OPENAI_API_KEY is intentionally NOT injected here; any test that
+        # tries to make a live API call will fail fast and visibly.
+        run: |
+          pytest tests/unit/ \
+            --timeout=${{ env.PYTEST_TIMEOUT }} \
+            --tb=short \
+            --junitxml=reports/unit-results.xml \
+            -v
+
+      - name: Upload unit test report
+        if: always()                         # upload even on failure
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: reports/unit-results.xml
+          retention-days: 14
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 3 — Integration tests (spins up real infra via Docker Compose)
+  # ════════════════════════════════════════════════════════════════════════════
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: unit-tests
+
+    # ── Spin up Qdrant + Elasticsearch as sidecar services ──────────────────
+    services:
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+        options: >-
+          --health-cmd "curl -sf http://localhost:6333/readyz"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+      elasticsearch:
+        image: elasticsearch:8.13.0
+        ports:
+          - 9200:9200
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+        options: >-
+          --health-cmd "curl -sf http://localhost:9200/_cluster/health"
+          --health-interval 15s
+          --health-timeout 10s
+          --health-retries 12
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for Qdrant..."
+          curl --retry 15 --retry-delay 5 --retry-connrefused \
+               -sf http://localhost:6333/readyz
+          echo "Waiting for Elasticsearch..."
+          curl --retry 20 --retry-delay 5 --retry-connrefused \
+               -sf http://localhost:9200/_cluster/health
+
+      - name: Run integration tests
+        # Secrets are injected here as environment variables.
+        # They are masked in logs automatically by GitHub Actions.
+        env:
+          OPENAI_API_KEY:     ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+          COHERE_API_KEY:     ${{ secrets.COHERE_API_KEY }}
+          # Point at the sidecar containers (localhost = runner network)
+          QDRANT_URL:         "http://localhost:6333"
+          ELASTICSEARCH_URL:  "http://localhost:9200"
+        run: |
+          pytest tests/integration/ \
+            --timeout=${{ env.PYTEST_TIMEOUT }} \
+            --tb=short \
+            --junitxml=reports/integration-results.xml \
+            -v
+
+      - name: Upload integration test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-report
+          path: reports/integration-results.xml
+          retention-days: 14
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 4 — RAGAS evaluation gate (runs on push to main only)
+  #
+  # Runs your golden_dataset.json against the live pipeline and asserts
+  # that faithfulness, answer_relevancy, context_precision, and
+  # context_recall all meet their minimum thresholds.
+  # ════════════════════════════════════════════════════════════════════════════
+  eval-gate:
+    name: RAGAS Evaluation Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: integration-tests
+    # Only block merges with eval results on direct pushes to main.
+    # PRs still run unit + integration tests but skip the expensive eval.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run RAGAS evaluation
+        env:
+          OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          COHERE_API_KEY:    ${{ secrets.COHERE_API_KEY }}
+          QDRANT_URL:        ${{ secrets.QDRANT_URL }}
+          QDRANT_API_KEY:    ${{ secrets.QDRANT_API_KEY }}
+          # Thresholds — adjust as your system matures
+          FAITHFULNESS_MIN:       "0.80"
+          ANSWER_RELEVANCY_MIN:   "0.75"
+          CONTEXT_PRECISION_MIN:  "0.70"
+          CONTEXT_RECALL_MIN:     "0.70"
+        run: |
+          python tests/evals/ragas_eval.py \
+            --dataset tests/evals/golden_dataset.json \
+            --output  reports/ragas-results.json
+
+      - name: Upload RAGAS report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragas-eval-report
+          path: reports/ragas-results.json
+          retention-days: 30                 # keep longer — used for trend tracking
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 5 — Notify on failure (Slack / email)
+  # ════════════════════════════════════════════════════════════════════════════
+  notify-on-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests, integration-tests, eval-gate]
+    # Run only when a previous job failed AND we're on the main branch
+    if: |
+      failure() &&
+      github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": ":red_circle: *CI failed on `main`*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":red_circle: *RAG CI failed on `main`*\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n*Author:* ${{ github.actor }}\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View logs>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL:  ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
