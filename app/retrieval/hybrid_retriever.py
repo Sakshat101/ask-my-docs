@@ -27,7 +27,7 @@ from langchain_community.vectorstores import FAISS, Chroma
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
-from langchain_openai import OpenAIEmbeddings
+from langchain_ollama import OllamaEmbeddings
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ class HybridEnsembleRetriever:
     Usage
     ─────
         docs = [...]  # list of langchain Document objects
-        embeddings = OpenAIEmbeddings()
+        embeddings = OllamaEmbeddings(model="nomic-embed-text")
         config = EnsembleRetrieverConfig(vector_weight=0.6, bm25_weight=0.4)
 
         retriever = HybridEnsembleRetriever(
@@ -138,7 +138,7 @@ class HybridEnsembleRetriever:
         Args:
             documents:  Corpus of documents to index. Must be non-empty.
             embeddings: LangChain-compatible embedding model. Defaults to
-                        OpenAIEmbeddings() if not provided.
+                        OllamaEmbeddings(model="nomic-embed-text") if not provided.
             config:     Retriever configuration. Uses sensible defaults if
                         not provided.
 
@@ -150,7 +150,7 @@ class HybridEnsembleRetriever:
             raise ValueError("documents list must be non-empty.")
 
         self.config = config or EnsembleRetrieverConfig()
-        self.embeddings = embeddings or OpenAIEmbeddings()
+        self.embeddings = embeddings or OllamaEmbeddings(model="nomic-embed-text")
         self._documents = documents
         self._ensemble: EnsembleRetriever | None = None
 
